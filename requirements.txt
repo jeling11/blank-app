@@ -1,5 +1,6 @@
-langchain>=0.1.0
-langchain-community
-openai
-streamlit>=1.30.0
-tiktoken
+streamlit
+langchain>=0.2.0
+langchain-community>=0.0.30
+langchain-huggingface>=0.0.5
+sentence-transformers
+faiss-cpu
