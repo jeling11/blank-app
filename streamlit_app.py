@@ -1,12 +1,12 @@
 import streamlit as st
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from langchain_community.llms import Ollama
 
 # Load vector database
-db = FAISS.load_local("vectordb", HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"))
+db = FAISS.load_local("vectordb", allow_dangerous_deserialization=True, HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"))
 
 # Define persona-styled system prompt
 template = """
