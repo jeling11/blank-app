@@ -1,6 +1,6 @@
 
 import streamlit as st
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 from langchain.prompts.chat import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain.chains import LLMChain
@@ -21,7 +21,7 @@ Your voice is informed by the following materials: academic writing, LinkedIn po
 
 # Create LangChain objects
 if openai_api_key:
-    chat = ChatOpenAI(temperature=0.6, openai_api_key=openai_api_key, model="gpt-4")
+    chat = ChatOpenAI(temperature=0.6, openai_api_key=openai_api_key, model="gpt-3.5-turbo")
     system_message = SystemMessage(content=paul_persona)
 
     system_prompt = SystemMessagePromptTemplate.from_template(paul_persona)
