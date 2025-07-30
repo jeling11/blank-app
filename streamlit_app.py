@@ -1,50 +1,43 @@
 import streamlit as st
-from langchain_community.chat_models import ChatOpenAI
-from langchain.schema import SystemMessage, HumanMessage
-from langchain.prompts.chat import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-from langchain.chains import LLMChain
-from openai.error import RateLimitError, AuthenticationError
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.prompts import PromptTemplate
+from langchain.chains import RetrievalQA
+from langchain_community.llms import Ollama
 
-st.set_page_config(page_title="Paul Golding Persona", page_icon="🧠")
+# Load vector database
+db = FAISS.load_local("vectordb", HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"))
 
-st.title("🧠 Paul Golding Persona")
-st.markdown("Simulate responses in the style of Paul Golding using a fine-tuned persona prompt.")
+# Define persona-styled system prompt
+template = """
+You are Paul Golding, a polymath technologist and thought leader known for eloquent writing about AI, systems thinking, hardware-software integration, and innovation strategy. 
+Respond to the question using Paul’s tone, voice, and ideas.
+Context: {context}
+Question: {question}
+Answer as Paul:
+"""
+prompt = PromptTemplate(template=template, input_variables=["context", "question"])
 
-openai_api_key = st.text_input("Enter your OpenAI API Key", type="password")
+# Load local LLM
+llm = Ollama(model="mistral")
 
-model_choice = st.selectbox(
-    "Choose Model (requires access for GPT-4)",
-    ["gpt-3.5-turbo", "gpt-4"],
-    help="Use GPT-4 only if your API key has access. GPT-3.5 is cheaper and more broadly available."
+# Create RAG chain
+qa_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
+    retriever=db.as_retriever(),
+    return_source_documents=False,
+    chain_type_kwargs={"prompt": prompt}
 )
 
-system_template = """You are Paul Golding, a polymath technologist and deep thinker.
-Your writing style is informed, analytical, philosophical, and eloquently metaphorical. 
-You reference technological ecosystems, AI, innovation, systems thinking, hardware/software synthesis, and occasionally historical or biological analogies. 
-You prioritize clarity while embracing complexity and nuance."""
+# Streamlit UI
+st.set_page_config(page_title="Ask Paul", page_icon="🧠")
+st.title("🧠 Ask Paul Golding (RAG Chatbot)")
+st.markdown("Ask a question and receive a Paul-style response based on his writings.")
 
-prompt = ChatPromptTemplate.from_messages([
-    SystemMessagePromptTemplate.from_template(system_template),
-    HumanMessagePromptTemplate.from_template("{input}")
-])
-
-if openai_api_key:
-    chat = ChatOpenAI(temperature=0.6, openai_api_key=openai_api_key, model=model_choice)
-    chain = LLMChain(llm=chat, prompt=prompt)
-
-    user_input = st.text_area("Enter your question or prompt to Paul", height=200)
-
-    if st.button("Get Response") and user_input:
-        with st.spinner("Thinking like Paul..."):
-            try:
-                response = chain.run({"input": user_input})
-                st.markdown("### 🧠 Paul's Response")
-                st.write(response)
-            except RateLimitError as e:
-                st.error("⚠️ Rate limit or quota exceeded. Please check your OpenAI usage and billing settings.")
-            except AuthenticationError:
-                st.error("🚫 Invalid API key. Please double-check and try again.")
-            except Exception as e:
-                st.error(f"❌ Unexpected error: {e}")
-else:
-    st.warning("Please enter your OpenAI API key to begin.")
+user_input = st.text_area("Your Question", placeholder="e.g., How do you see AI reshaping systems design?")
+if st.button("Get Paul's Take") and user_input.strip():
+    with st.spinner("Thinking like Paul..."):
+        result = qa_chain({"query": user_input})
+        st.markdown("### 🧠 Paul's Response")
+        st.success(result["result"])
